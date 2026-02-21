@@ -1,0 +1,18 @@
+{
+	"python.testing.pytestArgs": ["tests"],
+	"python.testing.unittestEnabled": false,
+	"python.testing.pytestEnabled": true,
+	"snyk.advanced.autoSelectOrganization": true,
+	"snyk.advanced.organization": "4d92cb1f-3fa6-4e1e-9a24-f744f058bd46",
+	"chat.tools.terminal.autoApprove": {
+		"/^python3 -m ruff check src tests --fix$/": {
+			"approve": true,
+			"matchCommandLine": true
+		},
+		"/^python3 -m pytest -q$/": {
+			"approve": true,
+			"matchCommandLine": true
+		},
+		"uv": true
+	}
+}
