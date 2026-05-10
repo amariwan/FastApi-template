@@ -1,0 +1,13 @@
+{
+  "venvPath": ".",
+  "venv": ".venv",
+  "pythonVersion": "3.13",
+  "include": [
+    "tests",
+    "hooks"
+  ],
+  "exclude": [
+    ".rendered",
+    "{{cookiecutter.project_slug}}"
+  ]
+}

@@ -1,0 +1,64 @@
+## =============================================================================
+# Justfile
+# =============================================================================
+set shell := ["bash", "-euo", "pipefail", "-c"]
+set dotenv-load := true
+set export := true
+HOST := env("HOST", "{{ cookiecutter.default_host }}")
+PORT := env("PORT", "{{ cookiecutter.dev_port }}")
+PROD_HOST := env("PROD_HOST", "{{ cookiecutter.prod_host }}")
+PROD_PORT := env("PROD_PORT", "{{ cookiecutter.prod_port }}")
+
+@default:
+    just --choose
+
+dev:
+    uv run -m fastapi dev src/{{ cookiecutter.package_name }}/asgi.py --host "$HOST" --port "$PORT"
+
+dev-uvicorn:
+    uv run --with-editable . uvicorn {{ cookiecutter.package_name }}.asgi:app --host "$HOST" --port "$PORT" --reload
+
+prod:
+    uv run --with-editable . uvicorn {{ cookiecutter.package_name }}.asgi:app --host "$PROD_HOST" --port "$PROD_PORT"
+
+clean:
+    rm -rf .venv .pytest_cache .ruff_cache .mypy_cache .coverage coverage.xml htmlcov dist build *.egg-info pip-wheel-metadata wheelhouse
+    find . -type d -name "__pycache__" -exec rm -rf {} +
+    find . -type f \( -name "*.pyc" -o -name "*.pyo" \) -delete
+
+fake-token:
+    uv run --with-editable . python src/{{ cookiecutter.package_name }}/utils/development_helpers/create_fake_token.py
+
+test:
+    uv run --with-editable . pytest -q
+
+test-unit:
+    uv run --with-editable . pytest -q -m unit
+
+test-integration:
+    uv run --with-editable . pytest -q -m integration
+
+test-e2e:
+    uv run --with-editable . pytest -q -m e2e
+
+test-cov:
+    uv run --with-editable . pytest -q --cov=src --cov-report=term-missing --cov-report=xml --junitxml=report.xml
+
+lint:
+    uv run --with-editable . ruff check .
+    uv run --with-editable . ruff format --check .
+
+fmt:
+    uv run --with-editable . ruff check --fix .
+    uv run --with-editable . ruff format .
+
+mypy:
+    uv run --with-editable . mypy src tests
+
+pyright:
+    uvx pyright src tests
+
+check: lint mypy pyright test
+
+update:
+    uv sync --upgrade

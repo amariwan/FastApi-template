@@ -1,54 +1,11 @@
-# Byte-compiled / optimized / DLL files
+.venv/
 __pycache__/
 *.py[cod]
-*$py.class
-
-# Distribution / packaging
-build/
-dist/
-*.egg-info/
-pip-wheel-metadata/
-
-# Installer logs
-pip-log.txt
-pip-delete-this-directory.txt
-
-# Unit test / coverage reports
-htmlcov/
-.tox/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
 .coverage
 .coverage.*
-.pytest_cache/
-.hypothesis/
-
-# Local virtual environments
-.venv/
-venv/
-ENV/
-env/
-
-# Tool caches
-.mypy_cache/
-.ruff_cache/
-
-# Environment files
-.env
-.env.*
-!.env.example
-
-# IDE/editor folders
-.idea/
-
-# OS metadata
+htmlcov/
+.rendered/
 .DS_Store
-Thumbs.db
-Desktop.ini
-
-# Git metadata
-.git
-
-# Misc
-note.*
-profile.html
-profile.speedscope.json
-*.log

@@ -1,0 +1,6 @@
+{
+	"permissions": {
+		"allow": ["Bash(git status)", "Bash(git log:*)", "Bash(docker-compose:*)", "Bash(docker exec:*)"],
+		"deny": ["Bash(rm -rf:*)", "Bash(sudo:*)", "Read(.env)", "Read(**/secrets/**)"]
+	}
+}

@@ -1,120 +1,18 @@
-## =============================================================================
-# Justfile
-# =============================================================================
 set shell := ["bash", "-euo", "pipefail", "-c"]
-set dotenv-load := true
-set export := true
-# ----------------------------------------------------------------------
-# Konfiguration
-# ----------------------------------------------------------------------
-APP_MODULE     := "src.asgi:app"
-APP_FILE       := "src/asgi.py"
-MIGRATION_DIR  := "src/db/migration"
-ALEMBIC_INI    := "alembic.ini"
-HOST           := env("HOST", "0.0.0.0")
-PORT           := env("PORT", "5000")
-WORKERS        := env("WORKERS", "2")
-TIMEOUT        := env("TIMEOUT", "60")
-ENV            := env("ENV", "development")
-RELOAD         := if ENV == "development" { "--reload" } else { "" }
-UV             := "uv run --with-editable ."
-UV_LINK_MODE   := env("UV_LINK_MODE", "copy")
-PYTEST         := "pytest -q"
-COV            := "--cov=src --cov-report=term-missing --cov-report=xml --junitxml=report.xml"
-# ----------------------------------------------------------------------
-# Default
-# ----------------------------------------------------------------------
+
 @default:
-    just --choose
+    just --list
 
-refresh:
-	just clean
-	just dev
+test:
+    uv run pytest
 
-dev:
-    uv run  -m fastapi dev src/app/asgi.py --port 5000
+render-default out_dir=".rendered":
+    rm -rf {{out_dir}}/default
+    uv run cookiecutter . --no-input --output-dir {{out_dir}} project_name="FastAPI Cookiecutter App" project_slug="fastapi-cookiecutter-app" package_name="fastapi_cookiecutter_app" app_title="FastAPI Cookiecutter App"
 
-# starts dev server with uvicorn
-dev-uvicorn:
-     uv run uvicorn src.app.asgi:app --host 0.0.0.0 --port 5000 --reload
+render-custom out_dir=".rendered":
+    rm -rf {{out_dir}}/custom
+    uv run cookiecutter . --no-input --output-dir {{out_dir}} project_name="Acme Platform API" project_slug="acme-platform-api" package_name="platform_api" app_title="Acme Platform API" default_host="127.0.0.1" dev_port="5055" prod_host="127.0.0.1" prod_port="9090" api_prefix="/internal" default_log_level="DEBUG" default_auth_mode="hs" default_auth_algorithms="HS256,RS256" db_enabled="true" db_host="db.internal" db_port="15432" db_username="acme" db_password="secret" db_database="acme_api" db_engine_echo="true" db_auto_create_tables="true" db_pool_size="12" db_max_overflow="24" db_pool_recycle="3600" db_pool_pre_ping="false" db_probe_timeout_seconds="4.5" s3_probe_timeout_seconds="8.0" role_active="false" role_prefix="acme:" role_read_roles="viewer" role_write_roles="editor" role_delete_roles="moderator" role_admin_roles="owner" role_hierarchy="owner>editor>viewer" default_storage_backend="filesystem" s3_secure="false" s3_addressing_style="path" filesystem_root="/srv/data" include_vscode="no" include_devcontainer="no" create_dotenv_file="no"
 
-# start frontend dev server (uses npx live-server if available)
-dev-frontend:
-    cd static/demo && npx live-server --port=5173 --host=127.0.0.1 --no-browser
-
-# start backend + frontend together (backend PID killed when frontend exits)
-dev-with-frontend:
-    @echo "Starting backend (http://127.0.0.1:5000) + frontend (http://127.0.0.1:5173)"
-    sh -lc 'DEMO_CORS_ORIGINS="http://127.0.0.1:5500,http://127.0.0.1:5173" uv run -m fastapi dev src/app/asgi.py --port 5000 & backend_pid=$!; cd static/demo && npx live-server --port=5173 --host=127.0.0.1 --no-browser; kill $backend_pid || true'
-
-dev-with-frontend-uvicorn:
-    @echo "Starting backend (http://127.0.0.1:5000) + frontend (http://127.0.0.1:5173)"
-    sh -lc 'DEMO_CORS_ORIGINS="http://127.0.0.1:5500,http://127.0.0.1:5173" uv run uvicorn src.app.asgi:app --host 0.0.0.0 --port 5000 --reload & backend_pid=$!; cd static/demo && npx live-server --port=5173 --host=127.0.0.1 --no-browser; kill $backend_pid || true'
-
-# start full prod server with gunicorn
-prod port:
-    uv run gunicorn src.app.asgi:app -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:{{port}} --reload
-
-# remove temporary files
 clean:
-    rm -rf .venv .pytest_cache .ruff_cache .mypy_cache .coverage coverage.xml \
-           dist build *.egg-info pip-wheel-metadata wheelhouse
-    find . -type d -name "__pycache__" -exec rm -rf {} +
-    find . -type f \( -name "*.pyc" -o -name "*.pyo" \) -delete
-
-# returns a fake JWT token for test-porpose
-fake_token:
-    uv run  src/app/utils/development_helpers/create_fake_token.py
-# ----------------------------------------------------------------------
-# Tests
-# ----------------------------------------------------------------------
-test *args="":
-    {{UV}} {{PYTEST}} {{args}}
-
-test-unit:       (test "-m unit")
-test-integration:(test "-m integration")
-test-e2e:        (test "-m e2e")
-test-all:        test-unit test-integration test-e2e
-
-test-cov:
-    {{UV}} {{PYTEST}} {{COV}}
-test-html:       (test "--cov=src --cov-report=html")
-
-# Watch-Modus (empfohlen: `ptw` statt `--looponfail`)
-watch marker:
-    {{UV}} ptw -- -m {{marker}} --lf --tb=short
-# ----------------------------------------------------------------------
-# Qualität
-# ----------------------------------------------------------------------
-lint:
-    {{UV}} ruff check .
-    {{UV}} ruff format --check .
-
-fmt:
-    uvx ruff format .
-
-fix:
-    uvx ruff check --fix .
-    just fmt
-
-mypy *args="":
-    {{UV}} mypy src {{args}}
-
-mypy-report:
-    {{UV}} mypy src --txt-report backend/mypy-report
-
-pyright:
-    uvx pyright src tests
-
-check: lint mypy pyright test-all
-fix-all: fix fmt
-
-update:
-    uv sync --upgrade --all-extras
-
-
-# ----------------------------------------------------------------------
-# Health
-# ----------------------------------------------------------------------
-health:
-    curl -fSs "http://{{HOST}}:{{PORT}}/health" && echo "OK" || echo "FAIL"
+    rm -rf .rendered .pytest_cache .ruff_cache .mypy_cache .venv

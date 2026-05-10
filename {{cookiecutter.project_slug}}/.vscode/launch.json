@@ -1,0 +1,82 @@
+{
+	"version": "0.2.0",
+	"configurations": [
+		{
+			"name": "FastAPI: dev (port {{ cookiecutter.dev_port }})",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "fastapi",
+			"args": ["dev", "src/{{ cookiecutter.package_name }}/asgi.py", "--host", "{{ cookiecutter.default_host }}", "--port", "{{ cookiecutter.dev_port }}"],
+			"cwd": "${workspaceFolder}",
+			"envFile": "${workspaceFolder}/.env",
+			"env": {
+				"PYTHONPATH": "${workspaceFolder}/src",
+				"PYTHONDONTWRITEBYTECODE": "1"
+			},
+			"jinja": true,
+			"justMyCode": false,
+			"console": "integratedTerminal"
+		},
+		{
+			"name": "Uvicorn: reload (port {{ cookiecutter.dev_port }})",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "uvicorn",
+			"args": ["{{ cookiecutter.package_name }}.asgi:app", "--host", "{{ cookiecutter.default_host }}", "--port", "{{ cookiecutter.dev_port }}", "--reload"],
+			"cwd": "${workspaceFolder}",
+			"envFile": "${workspaceFolder}/.env",
+			"env": {
+				"PYTHONPATH": "${workspaceFolder}/src",
+				"PYTHONDONTWRITEBYTECODE": "1"
+			},
+			"jinja": true,
+			"justMyCode": false,
+			"console": "integratedTerminal"
+		},
+		{
+			"name": "Pytest: alle Tests",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "pytest",
+			"args": ["-ra", "-vv", "--strict-markers"],
+			"cwd": "${workspaceFolder}",
+			"envFile": "${workspaceFolder}/.env",
+			"env": {
+				"PYTHONPATH": "${workspaceFolder}/src",
+				"PYTHONDONTWRITEBYTECODE": "1"
+			},
+			"justMyCode": false,
+			"console": "integratedTerminal"
+		},
+		{
+			"name": "Pytest: unit",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "pytest",
+			"args": ["-ra", "-vv", "--strict-markers", "-m", "unit"],
+			"cwd": "${workspaceFolder}",
+			"envFile": "${workspaceFolder}/.env",
+			"env": {
+				"PYTHONPATH": "${workspaceFolder}/src",
+				"PYTHONDONTWRITEBYTECODE": "1"
+			},
+			"justMyCode": false,
+			"console": "integratedTerminal"
+		},
+		{
+			"name": "Pytest: aktuelle Datei",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "pytest",
+			"args": ["${file}", "-ra", "-vv"],
+			"cwd": "${workspaceFolder}",
+			"envFile": "${workspaceFolder}/.env",
+			"env": {
+				"PYTHONPATH": "${workspaceFolder}/src",
+				"PYTHONDONTWRITEBYTECODE": "1"
+			},
+			"justMyCode": false,
+			"console": "integratedTerminal"
+		}
+	]
+}
