@@ -25,30 +25,30 @@ cookiecutter <your-git-url>
 ## Template variables
 
 - Core identity:
-  - `project_name`
-  - `project_slug`
-  - `package_name`
-  - `project_description`
-  - `author_name`
-  - `python_version`
-  - `app_title`
+     - `project_name`
+     - `project_slug`
+     - `package_name`
+     - `project_description`
+     - `author_name`
+     - `python_version`
+     - `app_title`
 - Runtime defaults:
-  - `default_host`, `dev_port`, `prod_host`, `prod_port`
-  - `api_prefix`, `default_log_level`, `default_test_mode`, `default_profiling_enabled`
-  - `default_cors_allowed_origins`, `default_cors_allow_methods`, `default_cors_allow_headers`
+     - `default_host`, `dev_port`, `prod_host`, `prod_port`
+     - `api_prefix`, `default_log_level`, `default_test_mode`, `default_profiling_enabled`
+     - `default_cors_allowed_origins`, `default_cors_allow_methods`, `default_cors_allow_headers`
 - Auth / roles:
-  - `default_auth_mode`, `default_auth_algorithms`
-  - `auth_validate_signature`, `auth_verify_signature`, `auth_verify_exp`, `auth_verify_iss`, `auth_verify_aud`, `auth_disable_ssl_verify`, `auth_clock_skew_secs`
-  - `role_active`, `role_prefix`, `role_read_roles`, `role_write_roles`, `role_delete_roles`, `role_admin_roles`, `role_hierarchy`
+     - `default_auth_mode`, `default_auth_algorithms`
+     - `auth_validate_signature`, `auth_verify_signature`, `auth_verify_exp`, `auth_verify_iss`, `auth_verify_aud`, `auth_disable_ssl_verify`, `auth_clock_skew_secs`
+     - `role_active`, `role_prefix`, `role_read_roles`, `role_write_roles`, `role_delete_roles`, `role_admin_roles`, `role_hierarchy`
 - Database / storage:
-  - `db_enabled`, `db_host`, `db_port`, `db_username`, `db_password`, `db_database`
-  - `db_engine_echo`, `db_auto_create_tables`, `db_pool_size`, `db_max_overflow`, `db_pool_recycle`, `db_pool_pre_ping`
-  - `db_probe_timeout_seconds`, `s3_probe_timeout_seconds`
-  - `default_storage_backend`, `s3_secure`, `s3_addressing_style`, `filesystem_root`
+     - `db_enabled`, `db_host`, `db_port`, `db_username`, `db_password`, `db_database`
+     - `db_engine_echo`, `db_auto_create_tables`, `db_pool_size`, `db_max_overflow`, `db_pool_recycle`, `db_pool_pre_ping`
+     - `db_probe_timeout_seconds`, `s3_probe_timeout_seconds`
+     - `default_storage_backend`, `s3_secure`, `s3_addressing_style`, `filesystem_root`
 - Generated assets:
-  - `include_vscode`, `include_devcontainer`, `create_dotenv_file`
-  - `devcontainer_node_version`, `devcontainer_postgres_image`
-  - `dev_secret_key`
+     - `include_vscode`, `include_devcontainer`, `create_dotenv_file`
+     - `devcontainer_node_version`, `devcontainer_postgres_image`
+     - `dev_secret_key`
 
 If you want to tweak absolutely every generated default, start with `cookiecutter.json` — the template now exposes the main runtime, auth, database, storage, Docker, VS Code, and devcontainer defaults there.
 

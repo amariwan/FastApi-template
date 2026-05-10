@@ -9,19 +9,19 @@ services:
                - ..:/workspace:cached
           command: sleep infinity
           environment:
-               DATABASE_URL: "postgresql://{{ cookiecutter.db_username }}:{{ cookiecutter.db_password }}@postgres:{{ cookiecutter.db_port }}/{{ cookiecutter.db_database }}"
+               DATABASE_URL: 'postgresql://{{ cookiecutter.db_username }}:{{ cookiecutter.db_password }}@postgres:{{ cookiecutter.db_port }}/{{ cookiecutter.db_database }}'
           depends_on:
                postgres:
                     condition: service_healthy
 
      postgres:
-          image: "{{ cookiecutter.devcontainer_postgres_image }}"
+          image: '{{ cookiecutter.devcontainer_postgres_image }}'
           command: ['postgres', '-c', 'port={{ cookiecutter.db_port }}']
           restart: always
           environment:
-               POSTGRES_USER: "{{ cookiecutter.db_username }}"
-               POSTGRES_PASSWORD: "{{ cookiecutter.db_password }}"
-               POSTGRES_DB: "{{ cookiecutter.db_database }}"
+               POSTGRES_USER: '{{ cookiecutter.db_username }}'
+               POSTGRES_PASSWORD: '{{ cookiecutter.db_password }}'
+               POSTGRES_DB: '{{ cookiecutter.db_database }}'
           ports:
                - '{{ cookiecutter.db_port }}:{{ cookiecutter.db_port }}'
           volumes:

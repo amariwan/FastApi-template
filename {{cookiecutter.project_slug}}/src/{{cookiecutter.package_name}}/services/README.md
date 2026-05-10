@@ -1,6 +1,7 @@
 # Services Guide
 
-**TL;DR:** Create a standalone service package under `src/{{ cookiecutter.package_name }}/services/<service_name>/`, implement the necessary layers there (api, application, domain, infrastructure, tests), and export an `integration.py` file with a `register_service()` function. The Core Loader will automatically load all subdirectories in `src/{{ cookiecutter.package_name }}/services/` that contain an `integration.py`.
+**TL;DR:** Create a standalone service package under `src/{{ cookiecutter.package_name }}/services/<service_name>/`, implement the necessary layers there (api, application, domain, infrastructure, tests), and export an `integration.py` file with a `register_service()` function. The Core Loader will
+automatically load all subdirectories in `src/{{ cookiecutter.package_name }}/services/` that contain an `integration.py`.
 
 **Important:** This document describes binding rules (MUST) and recommendations (SHOULD) for new services. It avoids examples that directly reference existing `doc*` modules — the rules apply universally to all new microservices in this repository.
 
@@ -27,7 +28,8 @@
 
 - **Discovery:** The Core Loader searches `src/{{ cookiecutter.package_name }}/services/` for subdirectories containing an `integration.py` and imports `{{ cookiecutter.package_name }}.services.<service_name>.integration`.
 - **`ServiceRegistration` Constraints:** `routers` must be `list[APIRouter]`; `startup` and `shutdown` must be `list[callable]`; `runtime_config` must be callable or `None`; `use_api_prefix` must be a `bool`.
-- **Startup/Shutdown Execution:** Startup hooks are executed in order, and their return values are collected. During shutdown, the shutdown hooks are called in reverse order; `shutdown_hooks[i]` receives the startup result at index `i` (if any). Ensure that pairs (startup, shutdown) are aligned correctly.
+- **Startup/Shutdown Execution:** Startup hooks are executed in order, and their return values are collected. During shutdown, the shutdown hooks are called in reverse order; `shutdown_hooks[i]` receives the startup result at index `i` (if any). Ensure that pairs (startup, shutdown) are aligned
+  correctly.
 - **Async vs Sync:** Startup/Shutdown callables can be sync or async. Background tasks (`asyncio.Task`/`Future`) returned by startup are _not_ awaited by the loader — they remain as tasks and can be canceled/awaited during shutdown.
 
 ## Conventions / Naming
@@ -143,8 +145,7 @@ src/{{ cookiecutter.package_name }}/services/<service_name>/
 
 ```
 
-> **Always co-locate tests:** Unit tests should be `<module>_test.py` next to the source file.
-> `tests/e2e/` and `tests/integration/` are strictly for higher-level tests.
+> **Always co-locate tests:** Unit tests should be `<module>_test.py` next to the source file. `tests/e2e/` and `tests/integration/` are strictly for higher-level tests.
 
 ---
 
@@ -348,12 +349,12 @@ class <Entity>Repository:
 
 ```json
 {
-  "<service_name>": {
-    "not_found": "<Entity> not found.",
-    "created": "<Entity> successfully created.",
-    "updated": "<Entity> successfully updated.",
-    "deleted": "<Entity> successfully deleted."
-  }
+	"<service_name>": {
+		"not_found": "<Entity> not found.",
+		"created": "<Entity> successfully created.",
+		"updated": "<Entity> successfully updated.",
+		"deleted": "<Entity> successfully deleted."
+	}
 }
 ```
 
