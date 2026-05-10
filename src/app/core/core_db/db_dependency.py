@@ -1,18 +1,3 @@
-from typing import TYPE_CHECKING, Annotated, Any
-
-from fastapi import Depends
-
-from app.core.core_db.async_db_session_maker import get_db_session
-
-# Import SQLAlchemy types only for type checking to avoid a hard runtime
-# dependency when DB is disabled / SQLAlchemy is not installed.
-if TYPE_CHECKING:
-    from sqlalchemy.ext.asyncio import AsyncSession
-
-
-DBSessionDep = Annotated[Any, Depends(dependency=get_db_session)]
-
-
 """
 Primary Dependency for Database Access
 
@@ -22,8 +7,8 @@ Primary Dependency for Database Access
 Usage:
     - Inject `DBSessionDep` into your path operations or other dependencies
       to perform async database queries.
-    - Ensures proper session lifecycle: commits, rollbacks, and closure
-      are handled automatically.
+    - Ensures proper session lifecycle: rollback on exception and closure
+      are handled automatically. Commits must be performed explicitly by the caller.
 
 Example:
     router = APIRouter()
@@ -40,5 +25,12 @@ Notes:
     - Internally, it uses `get_db_session` from the async DB session manager.
 """
 
+from typing import Annotated
 
+from fastapi import Depends
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.core_db.async_db_session_maker import get_db_session
+
+# Annotated type alias for injecting an AsyncSession via FastAPI's Depends mechanism.
 DBSessionDep = Annotated[AsyncSession, Depends(dependency=get_db_session)]

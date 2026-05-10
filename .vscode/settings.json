@@ -1,18 +1,63 @@
 {
-	"python.testing.pytestArgs": ["tests"],
-	"python.testing.unittestEnabled": false,
+	// ────────────────────────────────────────────────────────────────────────────
+	// 🐍 Python / FastAPI
+	// ────────────────────────────────────────────────────────────────────────────
+	"python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
+	"python.analysis.typeCheckingMode": "off",
+	"python.analysis.autoImportCompletions": true,
+	"python.analysis.extraPaths": ["${workspaceFolder}/src"],
+	"python.autoComplete.extraPaths": ["${workspaceFolder}/src"],
+	// ── Ruff ────────────────────────────────────────────────────────────────────
+	"[python]": {
+		"editor.defaultFormatter": "charliermarsh.ruff",
+		"editor.formatOnSave": true,
+		"editor.tabSize": 2,
+		"editor.insertSpaces": true,
+		"editor.trimAutoWhitespace": true,
+		"editor.codeActionsOnSave": {
+			"source.fixAll.ruff": "explicit",
+			"source.organizeImports.ruff": "explicit"
+		}
+	},
+	"ruff.configuration": "${workspaceFolder}/ruff.toml",
+	"ruff.cwd": "${workspaceFolder}",
+	"ruff.importStrategy": "fromEnvironment",
+	// ── Testing ─────────────────────────────────────────────────────────────────
 	"python.testing.pytestEnabled": true,
-	"snyk.advanced.autoSelectOrganization": true,
-	"snyk.advanced.organization": "4d92cb1f-3fa6-4e1e-9a24-f744f058bd46",
-	"chat.tools.terminal.autoApprove": {
-		"/^python3 -m ruff check src tests --fix$/": {
-			"approve": true,
-			"matchCommandLine": true
-		},
-		"/^python3 -m pytest -q$/": {
-			"approve": true,
-			"matchCommandLine": true
-		},
-		"uv": true
-	}
+	"python.testing.unittestEnabled": false,
+	"python.testing.cwd": "${workspaceFolder}",
+	"python.testing.pytestArgs": ["src", "-ra", "--strict-markers"],
+	// ── Coverage ────────────────────────────────────────────────────────────────
+	"coverage-gutters.xmlname": "coverage.xml",
+	"coverage-gutters.showLineCounts": true,
+	// ── Env ─────────────────────────────────────────────────────────────────────
+	"terminal.integrated.env.linux": {
+		"PYTHONPATH": "${workspaceFolder}/src",
+		"PYTHONDONTWRITEBYTECODE": "1",
+		"PYTHONUNBUFFERED": "1"
+	},
+	"terminal.integrated.env.osx": {
+		"PYTHONPATH": "${workspaceFolder}/src",
+		"PYTHONDONTWRITEBYTECODE": "1",
+		"PYTHONUNBUFFERED": "1"
+	},
+	"terminal.integrated.env.windows": {
+		"PYTHONPATH": "${workspaceFolder}\\src",
+		"PYTHONDONTWRITEBYTECODE": "1"
+	},
+	// ── Files ───────────────────────────────────────────────────────────────────
+	"files.autoSave": "onFocusChange",
+	"files.simpleDialog.enable": true,
+	"files.trimTrailingWhitespace": true,
+	"files.trimFinalNewlines": true,
+	"files.insertFinalNewline": true,
+	// ── Explorer Nesting ────────────────────────────────────────────────────────
+	"explorer.fileNesting.patterns": {
+		"*.py": "${basename}.{test,spec}*.py, test_${basename}.py, ${basename}_test.py, ${basename}.*.{json,yaml,yml}",
+		"*.json": "${basename}.*.json",
+		".env": ".env.*, .envrc",
+		".gitignore": ".gitattributes, .gitmodules, .gitconfig, .gitkeep",
+		"Dockerfile": "docker-compose.*, compose.*, .dockerignore, .devcontainer.*"
+	},
+	"snyk.advanced.autoSelectOrganization": true
 }

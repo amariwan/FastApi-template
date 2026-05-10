@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import datetime as dt
 import json
 import logging
@@ -28,6 +30,17 @@ LOG_RECORD_BUILTIN_ATTRS = {
 }
 
 
+_ANSI_RED = "\033[31m"
+_ANSI_YELLOW = "\033[33m"
+_ANSI_RESET = "\033[0m"
+
+_LEVEL_COLORS: dict[int, str] = {
+    logging.WARNING: _ANSI_YELLOW,
+    logging.ERROR: _ANSI_RED,
+    logging.CRITICAL: _ANSI_RED,
+}
+
+
 class MyJSONFormatter(logging.Formatter):
     def __init__(self, *, fmt_keys: dict[str, str] | None = None):
         super().__init__()
@@ -35,9 +48,13 @@ class MyJSONFormatter(logging.Formatter):
 
     def format(self, record: logging.LogRecord) -> str:
         message = self._prepare_log_dict(record)
-        return json.dumps(message, default=str)
+        line = json.dumps(message, default=str)
+        color = _LEVEL_COLORS.get(record.levelno)
+        if color:
+            return f"{color}{line}{_ANSI_RESET}"
+        return line
 
-    def _prepare_log_dict(self, record: logging.LogRecord):
+    def _prepare_log_dict(self, record: logging.LogRecord) -> dict[str, object]:
         try:
             berlin_tz = ZoneInfo("Europe/Berlin")
         except ZoneInfoNotFoundError:
@@ -50,9 +67,7 @@ class MyJSONFormatter(logging.Formatter):
         always_fields = {
             "level": record.levelname,
             "message": record.getMessage(),
-            "timestamp": dt.datetime.fromtimestamp(
-                record.created, tz=berlin_tz
-            ).isoformat(),
+            "timestamp": dt.datetime.fromtimestamp(record.created, tz=berlin_tz).isoformat(),
             "log_type": getattr(record, "log_type", "SINGLE"),
         }
         if record.exc_info is not None:
@@ -62,11 +77,7 @@ class MyJSONFormatter(logging.Formatter):
             always_fields["stack_info"] = self.formatStack(record.stack_info)
 
         message = {
-            key: (
-                msg_val
-                if (msg_val := always_fields.pop(val, None)) is not None
-                else getattr(record, val)
-            )
+            key: (msg_val if (msg_val := always_fields.pop(val, None)) is not None else getattr(record, val))
             for key, val in self.fmt_keys.items()
         }
         message.update(always_fields)

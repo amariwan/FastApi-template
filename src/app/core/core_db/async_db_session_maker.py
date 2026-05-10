@@ -1,58 +1,65 @@
 from __future__ import annotations
 
 import contextlib
+import functools
 from collections.abc import AsyncIterator
-from typing import TYPE_CHECKING, Any
 
-from app.config import AppSettings, DbSettings, get_app_settings, get_db_settings
+from sqlalchemy.ext.asyncio import (
+    AsyncConnection,
+    AsyncEngine,
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
 
-# Import SQLAlchemy runtime symbols lazily so the module can be imported when
-# SQLAlchemy is not installed and DB is disabled. Type-only imports are used
-# for static typing support.
-if TYPE_CHECKING:
-    from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine, AsyncSession
-
-app_settings: AppSettings = get_app_settings()
-db_settings: DbSettings = get_db_settings()
-
-
-def _postgres_connection_string_builder(db_port: int, db_user: str, db_pw: str, db: str, db_ip: str = "localhost") -> str:
-    """Creates a Postgres Connection string"""
-    pg_prefix = "postgresql+asyncpg"
-    connection_string = f"{pg_prefix}://{db_user}:{db_pw}@{db_ip}:{db_port}/{db}"
-    return connection_string
+from app.config import get_db_settings
+from app.core.core_db.base import Base
+from app.core.core_db.connection import build_async_database_url
+from app.core.core_messages import MessageKeys, msg
 
 
 class DatabaseSessionManager:
     """
     Manages a single async SQLAlchemy Engine and provides async session and connection context managers.
 
-    The heavy SQLAlchemy runtime imports are performed lazily in `__init__` so
-    the module can be imported in environments where SQLAlchemy is not
-    installed — as long as `DB_ENABLED` is False.
+    Responsibilities:
+    - Creates and maintains a single, heavy-weight AsyncEngine instance.
+    - Provides `session()` context manager for safe AsyncSession usage (auto rollback/close).
+    - Provides `connect()` context manager for raw AsyncConnection usage.
+    - Supports async cleanup of engine resources via `close()`.
+
+    Usage:
+        session_manager = DatabaseSessionManager(connection_string)
+        async with session_manager.session() as session:
+            result = await session.execute(some_query)
     """
 
-    def __init__(self, host: str, engine_kwargs: dict[str, Any] | None = None):
-        # avoid mutable default; initialize dict inside the function
-        engine_kwargs = engine_kwargs or {}
-        # perform runtime import only when constructing the session manager
-        from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+    def __init__(self, host: str, engine_kwargs: dict[str, object] | None = None):
+        engine: AsyncEngine = create_async_engine(host, **(engine_kwargs or {}))
+        sessionmaker: async_sessionmaker[AsyncSession] = async_sessionmaker(
+            autocommit=False,
+            bind=engine,
+            expire_on_commit=False,
+        )
 
-        self._engine: AsyncEngine = create_async_engine(host, **engine_kwargs)
-        self._sessionmaker = async_sessionmaker(autocommit=False, bind=self._engine)
+        self._engine: AsyncEngine | None = engine
+        self._sessionmaker: async_sessionmaker[AsyncSession] | None = sessionmaker
 
-    async def close(self):
-        if self._engine is None:
-            raise Exception("DatabaseSessionManager is not initialized")
-        await self._engine.dispose()
+    async def close(self) -> None:
+        if self._engine is not None:
+            await self._engine.dispose()
+            self._engine = None
+            self._sessionmaker = None
 
-        self._engine = None
-        self._sessionmaker = None
+    @property
+    def engine(self) -> AsyncEngine | None:
+        return self._engine
 
     @contextlib.asynccontextmanager
     async def connect(self) -> AsyncIterator[AsyncConnection]:
         if self._engine is None:
-            raise Exception("DatabaseSessionManager is not initialized")
+            raise RuntimeError(msg.get(MessageKeys.DB_SESSION_MANAGER_UNINITIALIZED))
+
         async with self._engine.begin() as connection:
             try:
                 yield connection
@@ -63,7 +70,7 @@ class DatabaseSessionManager:
     @contextlib.asynccontextmanager
     async def session(self) -> AsyncIterator[AsyncSession]:
         if self._sessionmaker is None:
-            raise Exception("DatabaseSessionManager has not initialized")
+            raise RuntimeError(msg.get(MessageKeys.DB_SESSION_MANAGER_UNINITIALIZED))
 
         session = self._sessionmaker()
         try:
@@ -75,41 +82,41 @@ class DatabaseSessionManager:
             await session.close()
 
 
-# If DB is disabled, provide a No-op session manager that matches the surface area of DatabaseSessionManager
-class NoopDatabaseSessionManager:
-    def __init__(self):
-        self._engine = None
+@functools.cache
+def get_sessionmanager() -> DatabaseSessionManager:
+    db_settings = get_db_settings()
+    connection_string = build_async_database_url(db_settings)
+    return DatabaseSessionManager(
+        connection_string,
+        engine_kwargs={
+            "echo": db_settings.DB_ENGINE_ECHO,
+            "pool_size": db_settings.DB_POOL_SIZE,
+            "max_overflow": db_settings.DB_MAX_OVERFLOW,
+            "pool_recycle": db_settings.DB_POOL_RECYCLE,
+            "pool_pre_ping": db_settings.DB_POOL_PRE_PING,
+        },
+    )
 
-    async def close(self):
-        # No resources to free when DB is disabled
+
+async def get_db_session() -> AsyncIterator[AsyncSession]:
+    """FastAPI dependency that yields an async DB session.
+
+    Handles rollback on exceptions and session closure automatically.
+    Commits must be performed explicitly by the caller or service layer.
+    """
+    async with get_sessionmanager().session() as session:
+        yield session
+
+
+async def ensure_db_schema() -> None:
+    """Create missing tables from SQLAlchemy metadata if DB auto create is enabled."""
+    db_settings = get_db_settings()
+    if not db_settings.DB_ENABLED or not db_settings.DB_AUTO_CREATE_TABLES:
         return
 
-    @contextlib.asynccontextmanager
-    async def connect(self) -> AsyncIterator[AsyncConnection]:
-        raise RuntimeError("Database is disabled (DB_ENABLED=False)")
-        yield  # pragma: no cover
+    engine = get_sessionmanager().engine
+    if engine is None:
+        raise RuntimeError(msg.get(MessageKeys.DB_ENGINE_UNINITIALIZED))
 
-    @contextlib.asynccontextmanager
-    async def session(self) -> AsyncIterator[AsyncSession]:
-        raise RuntimeError("Database is disabled (DB_ENABLED=False)")
-        yield  # pragma: no cover
-
-
-if db_settings.DB_ENABLED:
-    connection_string: str = _postgres_connection_string_builder(
-        db_port=db_settings.DB_PORT, db_ip=db_settings.DB_IP, db_user=db_settings.DB_USERNAME, db_pw=db_settings.DB_PASSWORD, db=db_settings.DB_DATABASE
-    )
-    sessionmanager: DatabaseSessionManager = DatabaseSessionManager(connection_string, engine_kwargs={"echo": db_settings.DB_ENGINE_ECHO})
-else:
-    sessionmanager = NoopDatabaseSessionManager()
-
-
-async def get_db_session():
-    """
-    FastAPI dependency that yields an async DB session.
-    Handles commit, rollback, and closure automatically because of the WITH / Contextmanager
-    """
-    if not db_settings.DB_ENABLED:
-        raise RuntimeError("Database is disabled (DB_ENABLED=False)")
-    async with sessionmanager.session() as session:
-        yield session
+    async with engine.begin() as connection:
+        await connection.run_sync(Base.metadata.create_all)

@@ -6,9 +6,8 @@ ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update \
   && apt-get install -y --no-install-recommends \
     sudo git zsh curl wget ca-certificates postgresql-client \
-  && rm -rf /var/lib/apt/lists/*
-
-RUN useradd -m -s /usr/bin/zsh ${USER} \
+  && rm -rf /var/lib/apt/lists/* \
+  && useradd -m -s /usr/bin/zsh ${USER} \
   && echo "${USER} ALL=(ALL) NOPASSWD: ALL" >/etc/sudoers.d/${USER} \
   && chmod 0440 /etc/sudoers.d/${USER}
 
