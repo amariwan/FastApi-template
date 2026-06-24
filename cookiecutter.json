@@ -62,26 +62,7 @@
     "false",
     "true"
   ],
-  "db_host": "localhost",
-  "db_port": "5432",
-  "db_username": "postgres",
-  "db_password": "postgres",
   "db_database": "{{ cookiecutter.package_name }}_db",
-  "db_engine_echo": [
-    "false",
-    "true"
-  ],
-  "db_auto_create_tables": [
-    "false",
-    "true"
-  ],
-  "db_pool_size": "5",
-  "db_max_overflow": "10",
-  "db_pool_recycle": "1800",
-  "db_pool_pre_ping": [
-    "true",
-    "false"
-  ],
   "db_probe_timeout_seconds": "2",
   "s3_probe_timeout_seconds": "2",
   "role_active": [

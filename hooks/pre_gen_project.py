@@ -24,9 +24,6 @@ BOOLEAN_FIELDS = {
     "auth_verify_aud": "{{ cookiecutter.auth_verify_aud }}",
     "auth_disable_ssl_verify": "{{ cookiecutter.auth_disable_ssl_verify }}",
     "db_enabled": "{{ cookiecutter.db_enabled }}",
-    "db_engine_echo": "{{ cookiecutter.db_engine_echo }}",
-    "db_auto_create_tables": "{{ cookiecutter.db_auto_create_tables }}",
-    "db_pool_pre_ping": "{{ cookiecutter.db_pool_pre_ping }}",
     "role_active": "{{ cookiecutter.role_active }}",
     "s3_secure": "{{ cookiecutter.s3_secure }}",
 }
@@ -40,20 +37,28 @@ YES_NO_FIELDS = {
 PORT_FIELDS = {
     "dev_port": "{{ cookiecutter.dev_port }}",
     "prod_port": "{{ cookiecutter.prod_port }}",
-    "db_port": "{{ cookiecutter.db_port }}",
 }
 
 INTEGER_FIELDS = {
     "auth_clock_skew_secs": "{{ cookiecutter.auth_clock_skew_secs }}",
-    "db_pool_size": "{{ cookiecutter.db_pool_size }}",
-    "db_max_overflow": "{{ cookiecutter.db_max_overflow }}",
-    "db_pool_recycle": "{{ cookiecutter.db_pool_recycle }}",
 }
 
 FLOAT_FIELDS = {
     "db_probe_timeout_seconds": "{{ cookiecutter.db_probe_timeout_seconds }}",
     "s3_probe_timeout_seconds": "{{ cookiecutter.s3_probe_timeout_seconds }}",
 }
+
+# Optional DB fields (may be absent from cookiecutter.json; use get() so extra_context can still provide values)
+DB_HOST = "{{ cookiecutter.get('db_host', '') }}"
+DB_PORT = "{{ cookiecutter.get('db_port', '') }}"
+DB_USERNAME = "{{ cookiecutter.get('db_username', '') }}"
+DB_PASSWORD = "{{ cookiecutter.get('db_password', '') }}"
+DB_ENGINE_ECHO = "{{ cookiecutter.get('db_engine_echo', '') }}"
+DB_AUTO_CREATE_TABLES = "{{ cookiecutter.get('db_auto_create_tables', '') }}"
+DB_POOL_SIZE = "{{ cookiecutter.get('db_pool_size', '') }}"
+DB_MAX_OVERFLOW = "{{ cookiecutter.get('db_max_overflow', '') }}"
+DB_POOL_RECYCLE = "{{ cookiecutter.get('db_pool_recycle', '') }}"
+DB_POOL_PRE_PING = "{{ cookiecutter.get('db_pool_pre_ping', '') }}"
 
 PROJECT_SLUG_PATTERN = re.compile(r"^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$")
 PYTHON_VERSION_PATTERN = re.compile(r"^(\d+)\.(\d+)$")
@@ -150,9 +155,7 @@ def validate_integers() -> None:
         parsed = _parse_int(field_name, value)
         if parsed < 0:
             fail(f"{field_name} must be zero or greater.")
-
-    if _parse_int("db_pool_size", INTEGER_FIELDS["db_pool_size"]) < 1:
-        fail("db_pool_size must be at least 1.")
+    
 
 
 def validate_floats() -> None:
@@ -168,6 +171,83 @@ def validate_auth_algorithms() -> None:
         fail("default_auth_algorithms must contain at least one algorithm.")
 
 
+def _input_default(prompt: str, default: str) -> str:
+    try:
+        value = input(f"{prompt} [{default}]: ").strip()
+    except (EOFError, KeyboardInterrupt):
+        value = ""
+    return value or default
+
+
+def _prompt_db_and_replace_placeholders() -> None:
+    """Prompt for optional DB settings (only if DB_ENABLED=true) and replace cookiecutter placeholders
+    in template files so they won't be asked when DB is disabled.
+    """
+    from pathlib import Path
+
+    template_root = Path(__file__).resolve().parents[1]
+
+    db_keys = [
+        "db_host",
+        "db_port",
+        "db_username",
+        "db_password",
+        "db_database",
+        "db_engine_echo",
+        "db_auto_create_tables",
+        "db_pool_size",
+        "db_max_overflow",
+        "db_pool_recycle",
+        "db_pool_pre_ping",
+    ]
+
+    final: dict[str, str] = {}
+    if "db_enabled" in BOOLEAN_FIELDS and BOOLEAN_FIELDS["db_enabled"] == "true":
+        # Use values provided via extra_context (rendered into DB_* constants) if present,
+        # otherwise interactively ask the user for the value.
+        final["db_host"] = DB_HOST or _input_default("Database host (DB_IP)", "localhost")
+        final["db_port"] = DB_PORT or _input_default("Database port (DB_PORT)", "5432")
+        final["db_username"] = DB_USERNAME or _input_default("Database username (DB_USERNAME)", "postgres")
+        final["db_password"] = DB_PASSWORD or _input_default("Database password (DB_PASSWORD)", "postgres")
+        final["db_database"] = DB_DATABASE or _input_default("Database name (DB_DATABASE)", f"{PACKAGE_NAME}_db")
+        final["db_engine_echo"] = DB_ENGINE_ECHO or _input_default("DB engine echo (db_engine_echo)", "false")
+        final["db_auto_create_tables"] = DB_AUTO_CREATE_TABLES or _input_default("DB auto create tables (db_auto_create_tables)", "false")
+        final["db_pool_size"] = DB_POOL_SIZE or _input_default("DB pool size (db_pool_size)", "5")
+        final["db_max_overflow"] = DB_MAX_OVERFLOW or _input_default("DB max overflow (db_max_overflow)", "10")
+        final["db_pool_recycle"] = DB_POOL_RECYCLE or _input_default("DB pool recycle (db_pool_recycle)", "1800")
+        final["db_pool_pre_ping"] = DB_POOL_PRE_PING or _input_default("DB pool pre-ping (db_pool_pre_ping)", "true")
+    else:
+        for k in db_keys:
+            final[k] = ""
+
+    # Build placeholder patterns and replace across template files (skip hooks/ and binary files)
+    patterns: list[tuple[str, str]] = []
+    for k, v in final.items():
+        patterns.append((f"{{{{ cookiecutter.{k} }}}}", v))
+        patterns.append((f"{{{{ cookiecutter.get('{k}', '') }}}}", v))
+        patterns.append((f'{{{{ cookiecutter.get("{k}", "") }}}}', v))
+
+    binary_exts = {".png", ".jpg", ".jpeg", ".gif", ".ico", ".zip", ".tar", ".gz", ".whl", ".egg"}
+
+    for path in template_root.rglob("*"):
+        if not path.is_file():
+            continue
+        if "hooks" in path.parts:
+            continue
+        if path.suffix.lower() in binary_exts:
+            continue
+        try:
+            text = path.read_text(encoding="utf-8")
+        except Exception:
+            continue
+        new_text = text
+        for pat, val in patterns:
+            if pat in new_text:
+                new_text = new_text.replace(pat, val)
+        if new_text != text:
+            path.write_text(new_text, encoding="utf-8")
+
+
 if __name__ == "__main__":
     validate_project_slug()
     validate_package_name()
@@ -180,4 +260,12 @@ if __name__ == "__main__":
     validate_integers()
     validate_floats()
     validate_auth_algorithms()
+    # If DB is enabled, prompt for DB details (only when not provided via extra_context) and
+    # replace any cookiecutter DB placeholders in the template so users who chose not to
+    # include a DB won't be asked about DB host/credentials later.
+    try:
+        _prompt_db_and_replace_placeholders()
+    except Exception:
+        # Never fail generation because of non-critical hook issues; show a warning instead.
+        print("WARNING: failed to run optional DB placeholder replacement hook")
     sys.exit(0)
