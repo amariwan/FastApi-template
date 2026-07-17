@@ -1,3 +1,5 @@
+![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
+
 # FastAPI Cookiecutter
 
 A modern, production-ready [Cookiecutter](https://github.com/cookiecutter/cookiecutter) template for building configurable FastAPI services with a `src/` layout, typed settings, optional VS Code/devcontainer scaffolding, and render-time control over nearly every default.
